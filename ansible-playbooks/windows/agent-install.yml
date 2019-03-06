@@ -1,0 +1,70 @@
+---
+- hosts: windows-agent
+  tasks:
+    - name: make directory in c:\tmp\lsware
+      win_file:
+        path: c:\tmp\lsware
+        state: directory
+
+    - name: find unity agent install files in c:\tmp\lsware
+      win_find:
+        paths: c:\tmp\lsware
+        patterns: lsware-*.*
+      register: lsware_files_to_delete
+
+    - name: delete unity agent install files in c:\tmp\lsware
+      win_file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ lsware_files_to_delete.files }}"
+
+    - name: delete unity package file in c:\tmp\lsware\pkg
+      win_file:
+        path: c:\tmp\lsware\pkg
+        state: absent
+
+    - name: copy unity agent file
+      win_copy:
+        src: /root/rpms/lsware-unityx-agent-5.0-123-windows-6.2-intel.zip
+        dest: c:\tmp\lsware\lsware-unityx-agent-5.0-123-windows-6.2-intel.zip
+
+    - name: copy unity package file
+      win_copy:
+        src: /root/rpms/lsware-unityx-packages-5.0-123-windows-6.2-intel.zip
+        dest: c:\tmp\lsware\lsware-unityx-packages-5.0-123-windows-6.2-intel.zip
+
+    - name: unzip unity agent file
+      win_unzip:
+         src: c:\tmp\lsware\lsware-unityx-agent-5.0-123-windows-6.2-intel.zip
+         dest: c:\tmp\lsware
+
+    - name: install unity agent from a local file
+      win_package:
+        path: c:\tmp\lsware\lsware-unityx-agent-5.0-123-windows-6.2-intel.exe
+        state: present
+
+    - name: wait 300 seconds for port 29170 to become open on the host, don't start checking for 10 seconds
+      win_wait_for:
+        port: 29170
+        delay: 10
+
+    - name: register unity agent
+      shell: C:\Program Files (x86)\LSware\unityx\bin\unityx regclnt register {{ unity_manager_ip }} {{ unity_manager_port }} {{ ansible_host }} {{ ansible_hostname }} y -u admin -p admin
+      args:
+        executable: cmd
+
+    - name: make directory in c:\tmp\lsware\pkg
+      win_file:
+        path: c:\tmp\lsware\pkg
+        state: directory
+
+    - name: unzip unity package file in c:\tmp\lsware\pkg
+      win_unzip:
+        src: c:\tmp\lsware\lsware-unityx-packages-5.0-123-windows-6.2-intel.zip
+        dest: c:\tmp\lsware\pkg
+
+    - name: disribute package files
+      shell: C:\Program Files (x86)\LSware\unityx\bin\unityx -u admin -p admin distrib publish -d c:\tmp\lsware\pkg
+      args:
+        executable: cmd
+

@@ -1,0 +1,16 @@
+[linux-agent]
+192.168.126.102
+192.168.126.103
+192.168.126.105
+192.168.126.112
+192.168.126.130
+
+[linux-agent:vars]
+ansible_user=root
+ansible_ssh_pass=webdev00!@
+manager_ip=192.168.126.251
+manager_port=29170
+manager_id=admin
+manager_pwd=admin
+unity_ver=5.0-125
+

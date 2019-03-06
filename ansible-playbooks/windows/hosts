@@ -1,0 +1,13 @@
+[windows-agent]
+192.168.126.101
+
+[windows-agent:vars]
+ansible_connection=winrm
+ansible_user=administrator
+ansible_password=webdev00!@
+ansible_winrm_server_cert_validation=ignore
+ansible_port=5985
+ansible_winrm_scheme=http
+ansible_winrm_transport=basic
+unity_manager_ip=192.168.126.201
+unity_manager_port=29170

@@ -1,0 +1,33 @@
+---
+- hosts: linux-manager
+  tasks:
+    - name: find unity manager install files
+      find:
+        path: /root
+        patterns: lsware-*.*
+      register: lsware_files_to_delete
+
+    - name: delete unity manager install files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ lsware_files_to_delete.files }}"
+
+    - name: delete /opt/src (unity package source directory)
+      file:
+        path: /opt/src
+        state: absent
+
+    - name: uninstall unity agent rpm
+      yum:
+        name: lsware-unityx
+        state: absent
+
+    - name: sleep for 3 seconds
+      wait_for: timeout=3
+      delegate_to: localhost
+
+    - name: delete /opt/lsware (unity install directory)
+      file:
+        path: /opt/lsware
+        state: absent

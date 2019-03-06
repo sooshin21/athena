@@ -1,0 +1,64 @@
+---
+- hosts: linux-agent
+  tasks:
+    - name: find unity agent install files
+      find:
+        path: /root
+        patterns: lsware-*.*
+      register: lsware_files_to_delete
+
+    - name: delete unity agent install files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ lsware_files_to_delete.files }}"
+
+    - name: delete /opt/src (unity package source directory)
+      file:
+        path: /opt/src
+        state: absent
+
+    - name: copy unity agent rpm file with owner and permissions
+      copy:
+        src: /root/rpms/lsware-unityx-agent-{{unity_ver}}-linux-2.6-x86_64.rpm.gz
+        dest: /root/lsware-unityx-agent-{{unity_ver}}-linux-2.6-x86_64.rpm.gz
+
+    - name: copy unity package tar file with owner and permissions
+      copy:
+        src: /root/rpms/lsware-unityx-packages-{{unity_ver}}-linux-2.6-x86_64.tar
+        dest: /root/lsware-unityx-packages-{{unity_ver}}-linux-2.6-x86_64.tar
+
+    - name: unzip unity agent rpm.gz file
+      shell: gzip -d /root/lsware-unityx-agent-{{unity_ver}}-linux-2.6-x86_64.rpm.gz
+      args:
+        executable: /bin/bash
+
+    - name: install unity agent rpm from a local file
+      yum:
+        name: /root/lsware-unityx-agent-{{unity_ver}}-linux-2.6-x86_64.rpm
+        state: present
+
+    - name: sleep for 3 seconds
+      wait_for: timeout=3
+      delegate_to: localhost
+
+    - name: set regclnt unity agent
+      shell: /opt/lsware/unityx/sbin/unityx regclnt register {{ manager_ip }} {{ manager_port }} {{ ansible_host }} {{ ansible_hostname }} y -u {{ manager_id }} -p {{ manager_pwd }}
+      args:
+        executable: /bin/bash
+
+    - name: make unity package directory
+      file:
+        path: /opt/src
+        state: directory
+
+    - name: unzip unity package file
+      unarchive:
+        src: /root/lsware-unityx-packages-{{unity_ver}}-linux-2.6-x86_64.tar
+        dest: /opt/src
+        remote_src: yes
+
+    - name: disribute package files
+      shell: /opt/lsware/unityx/sbin/unityx -u {{ manager_id }} -p {{ manager_pwd }} distrib publish -d /opt/src/packages/
+      args:
+        executable: /bin/bash
